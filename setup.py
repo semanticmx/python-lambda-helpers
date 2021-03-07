@@ -12,6 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     'boto3==1.16.63',
+    'botocore==1.19.63',
 ]
 
 setup_requirements = ['pytest-runner', ]

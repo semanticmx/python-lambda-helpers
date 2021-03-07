@@ -2,7 +2,6 @@ from contextlib import suppress
 from unittest.mock import patch
 
 import boto3
-import botocore
 
 from python_lambda_helpers import dynamodb as ddb_helpers
 
@@ -98,6 +97,112 @@ def test_update_response(make_api_call):
         sort_value=True,
         field='my_custom_field',
         value='my_custom_value'
+    )
+
+    assert response is True
+
+
+def test_query_required_params():
+    sql_stmt = 'SELECT * FROM table'
+
+    with suppress(ddb_helpers.TableNameNotDefined):
+        ddb_helpers.query(sql_stmt)
+
+    with suppress(ddb_helpers.ClientErrorException):
+        ddb_helpers.query(
+            value=sql_stmt,
+            table_name='TestTable',
+        )
+
+
+@patch('botocore.client.BaseClient._make_api_call')
+def test_query_response(make_api_call):
+    make_api_call.return_value = {
+        'Items': []
+    }
+
+    sql_stmt = 'SELECT * FROM table'
+
+    results, _ = ddb_helpers.query(
+        value=sql_stmt,
+        table_name='TestTable',
+    )
+
+    assert results == []
+
+
+def test_insert_required_params():
+    with suppress(ddb_helpers.TableNameNotDefined):
+        ddb_helpers.insert()
+
+    with suppress(ddb_helpers.MissingRequiredParameter):
+        ddb_helpers.insert(table_name='TestTable')
+
+    with suppress(ddb_helpers.MissingRequiredParameter):
+        ddb_helpers.insert(
+            table_name='TestTable',
+            primary='email',
+        )
+
+    with suppress(ddb_helpers.MissingRequiredParameter):
+        ddb_helpers.insert(
+            table_name='TestTable',
+            primary='email',
+            primary_value='faker@example.com',
+        )
+
+    with suppress(ddb_helpers.MissingRequiredParameter):
+        ddb_helpers.insert(
+            table_name='TestTable',
+            primary='email',
+            primary_value='faker@example.com',
+            sort='verified',
+        )
+
+    with suppress(ddb_helpers.MissingRequiredParameter):
+        ddb_helpers.insert(
+            table_name='TestTable',
+            primary='email',
+            primary_value='faker@example.com',
+            sort='verified',
+            sort_value=False,
+        )
+
+    with suppress(ddb_helpers.MissingRequiredParameter):
+        ddb_helpers.insert(
+            table_name='TestTable',
+            primary='email',
+            primary_value='faker@example.com',
+            sort='verified',
+            sort_value=False,
+            field='custom_field'
+        )
+
+    client = boto3.client('dynamodb')
+    with suppress(client.exceptions.ResourceNotFoundException):
+        ddb_helpers.insert(
+            table_name='TestTable',
+            primary='email',
+            primary_value='faker@example.com',
+            sort='verified',
+            sort_value=False,
+            field='custom_field',
+            value='custom_value'
+        )
+
+
+@patch('botocore.client.BaseClient._make_api_call')
+def test_insert_response(make_api_call):
+    make_api_call.return_value = True
+
+    response = ddb_helpers.insert(
+        table_name='TestTable',
+        primary='email',
+        primary_value='faker@example.com',
+        sort='verified',
+        sort_value=False,
+        field='custom_field',
+        value='custom_value'
     )
 
     assert response is True
